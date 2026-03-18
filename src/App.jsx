@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useIdentity } from './hooks/useIdentity';
 import Welcome from './pages/Welcome';
 import CreateIdentity from './pages/CreateIdentity';
@@ -19,7 +19,7 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {!identity ? (
           <>
@@ -36,6 +36,6 @@ export default function App() {
           </>
         )}
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
