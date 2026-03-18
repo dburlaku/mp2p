@@ -1,7 +1,7 @@
 .welcome {
   width: 100%;
   max-width: 420px;
-  padding: 20px;
+  padding: 40px 20px 20px;
 }
 
 .welcome-content {
@@ -74,10 +74,11 @@
 }
 
 .feature-icon {
-  font-size: 16px;
-  color: var(--text-tertiary);
+  color: #4263eb;
   width: 24px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 

@@ -1,7 +1,7 @@
 .create-page {
   width: 100%;
   max-width: 460px;
-  padding: 20px;
+  padding: 32px 20px 20px;
   max-height: 100vh;
   overflow-y: auto;
 }
@@ -24,12 +24,13 @@
   color: var(--text-primary);
 }
 
+/* Steps indicator — 3-step progress bar */
 .steps-indicator {
   display: flex;
   justify-content: center;
-  gap: 24px;
+  gap: 32px;
   position: relative;
-  padding: 0 40px;
+  padding: 0 48px;
 }
 
 .step-dot {
@@ -37,7 +38,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,13 +47,19 @@
   transition: all 0.3s;
 }
 
-.step-dot.active {
-  border-color: var(--accent-dim);
+.step-dot.done {
+  border-color: #1d9e75;
+  background: #1d9e75;
 }
 
 .step-dot.current {
-  border-color: var(--accent);
-  background: var(--bg-hover);
+  border-color: #4263eb;
+  background: rgba(66, 99, 235, 0.15);
+}
+
+.step-dot.future {
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
 }
 
 .step-num {
@@ -60,23 +67,35 @@
   color: var(--text-tertiary);
 }
 
-.step-dot.active .step-num {
-  color: var(--text-secondary);
+.step-dot.current .step-num {
+  color: #4263eb;
+  font-weight: 600;
 }
 
-.step-dot.current .step-num {
-  color: var(--text-primary);
+.step-check {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
 }
 
 .step-line {
   position: absolute;
   top: 50%;
-  left: 54px;
-  right: 54px;
-  height: 1px;
+  left: 62px;
+  right: 62px;
+  height: 2px;
   background: var(--border);
+  transform: translateY(-50%);
+  overflow: hidden;
 }
 
+.step-line-progress {
+  height: 100%;
+  background: #1d9e75;
+  transition: width 0.3s ease;
+}
+
+/* Step content */
 .step-content {
   display: flex;
   flex-direction: column;
@@ -94,6 +113,7 @@
   line-height: 1.6;
 }
 
+/* Input group */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -103,9 +123,9 @@
 
 .input-group label {
   font-size: 12px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .char-count {
@@ -114,35 +134,124 @@
   text-align: right;
 }
 
-.seed-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.seed-word {
+/* Password field with toggle */
+.password-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
 }
 
-.seed-num {
-  font-size: 10px;
+.password-wrapper input {
+  padding-right: 40px;
+}
+
+.toggle-pass {
+  position: absolute;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-tertiary);
-  min-width: 16px;
-  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  transition: color 0.2s;
 }
 
-.seed-text {
-  font-size: 13px;
-  font-family: var(--font-mono);
+.toggle-pass:hover {
   color: var(--text-primary);
 }
 
+/* Strength indicator */
+.strength-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s, background 0.3s;
+}
+
+.strength-weak .strength-fill {
+  width: 33%;
+  background: #e54545;
+}
+
+.strength-medium .strength-fill {
+  width: 66%;
+  background: #d4a017;
+}
+
+.strength-strong .strength-fill {
+  width: 100%;
+  background: #1d9e75;
+}
+
+.strength-label {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.strength-weak .strength-label { color: #e54545; }
+.strength-medium .strength-label { color: #d4a017; }
+.strength-strong .strength-label { color: #1d9e75; }
+
+/* Inline error */
+.inline-error {
+  font-size: 12px;
+  color: #e54545;
+}
+
+/* Drop zone for file upload */
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 20px;
+  border: 1.5px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.drop-zone:hover {
+  border-color: #4263eb;
+  background: rgba(66, 99, 235, 0.04);
+}
+
+.drop-zone.drag-over {
+  border-color: #4263eb;
+  background: rgba(66, 99, 235, 0.08);
+}
+
+.drop-zone.has-file {
+  border-color: #1d9e75;
+  border-style: solid;
+}
+
+.drop-zone-file {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Warning box */
 .warning-box {
   display: flex;
   align-items: flex-start;
@@ -170,21 +279,7 @@
   font-size: 11px;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
+/* Identity preview */
 .identity-preview {
   display: flex;
   flex-direction: column;
@@ -213,54 +308,11 @@
   color: var(--text-primary);
 }
 
-.identity-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 28px 20px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-}
-
-.id-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--bg-tertiary);
-  border: 1.5px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 300;
-  color: var(--text-secondary);
-}
-
-.id-name {
-  font-size: 16px;
-  font-weight: 400;
-}
-
-.id-key {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-tertiary);
-}
-
-.id-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--green);
-}
-
+/* Error message */
 .error-msg {
   font-size: 12px;
-  color: var(--red);
+  color: #e54545;
   padding: 8px 12px;
-  background: rgba(122, 74, 74, 0.1);
+  background: rgba(229, 69, 69, 0.08);
   border-radius: var(--radius-sm);
 }

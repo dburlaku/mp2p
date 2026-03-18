@@ -50,7 +50,8 @@ body {
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  overflow-y: auto;
 }
 
 button {
@@ -75,7 +76,12 @@ input, textarea {
 }
 
 input:focus, textarea:focus {
-  border-color: var(--accent);
+  border-color: #4263eb;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-tertiary);
+  opacity: 0.7;
 }
 
 textarea {
@@ -92,14 +98,14 @@ textarea {
 }
 
 .btn-primary {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-light);
-  color: var(--text-primary);
+  background: #4263eb;
+  border: 1px solid #4263eb;
+  color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent-dim);
+  background: #3451c7;
+  border-color: #3451c7;
 }
 
 .btn-primary:disabled {

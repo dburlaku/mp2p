@@ -1,29 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateSeedPhrase, generateKeyPair, generateNodeId } from '../utils/crypto';
+import { generateKeyPair, generateNodeId, encryptIdentity, downloadFile, getPassphraseStrength } from '../utils/crypto';
 import '../styles/create.css';
 
 export default function CreateIdentity({ onRegister }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [displayName, setDisplayName] = useState('');
-  const [seedPhrase, setSeedPhrase] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
-  const [keyData, setKeyData] = useState(null);
+  const [passphrase, setPassphrase] = useState('');
+  const [passphraseConfirm, setPassphraseConfirm] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const handleStart = () => {
-    const seed = generateSeedPhrase();
-    setSeedPhrase(seed);
-    setStep(1);
-  };
-
-  const handleConfirmSeed = () => {
-    setStep(2);
-  };
+  const strength = getPassphraseStrength(passphrase);
+  const passValid = passphrase.length >= 8;
+  const passMatch = passphrase === passphraseConfirm;
 
   const handleFinish = async () => {
-    if (!displayName.trim()) return;
     setCreating(true);
     try {
       const keys = await generateKeyPair();
@@ -33,12 +26,13 @@ export default function CreateIdentity({ onRegister }) {
         publicKey: keys.publicKey,
         shortId: keys.shortId,
         nodeId,
-        seedPhrase,
         createdAt: Date.now(),
       };
-      setKeyData(keys);
+
+      const encrypted = await encryptIdentity(identity, passphrase);
+      downloadFile(encrypted, 'identity.mp2p');
+
       onRegister(identity);
-      setStep(3);
     } catch (err) {
       console.error('Key generation failed:', err);
     } finally {
@@ -46,7 +40,7 @@ export default function CreateIdentity({ onRegister }) {
     }
   };
 
-  const steps = ['Имя', 'Фраза', 'Подтверждение', 'Готово'];
+  const steps = ['Имя', 'Секретная фраза', 'Подтверждение'];
 
   return (
     <div className="create-page">
@@ -57,11 +51,17 @@ export default function CreateIdentity({ onRegister }) {
 
         <div className="steps-indicator">
           {steps.map((s, i) => (
-            <div key={s} className={`step-dot ${i <= step ? 'active' : ''} ${i === step ? 'current' : ''}`}>
-              <span className="step-num">{i + 1}</span>
+            <div key={s} className={`step-dot ${i < step ? 'done' : ''} ${i === step ? 'current' : ''} ${i > step ? 'future' : ''}`}>
+              {i < step ? (
+                <span className="step-check">✓</span>
+              ) : (
+                <span className="step-num">{i + 1}</span>
+              )}
             </div>
           ))}
-          <div className="step-line" />
+          <div className="step-line">
+            <div className="step-line-progress" style={{ width: `${(step / (steps.length - 1)) * 100}%` }} />
+          </div>
         </div>
 
         {step === 0 && (
@@ -85,44 +85,73 @@ export default function CreateIdentity({ onRegister }) {
             <button
               className="btn btn-primary"
               disabled={!displayName.trim()}
-              onClick={handleStart}
+              onClick={() => setStep(1)}
             >
-              Сгенерировать ключи
+              Продолжить
             </button>
           </div>
         )}
 
         {step === 1 && (
           <div className="step-content">
-            <h2>Сид-фраза</h2>
+            <h2>Придумайте секретную фразу</h2>
             <p className="step-desc">
-              Запишите эти 12 слов в надёжное место. Это единственный способ
-              восстановить вашу идентичность.
+              Это ваш единственный ключ. Минимум 8 символов. Запомните её или запишите — мы не сможем её восстановить.
             </p>
-            <div className="seed-grid">
-              {seedPhrase.split(' ').map((word, i) => (
-                <div key={i} className="seed-word">
-                  <span className="seed-num">{i + 1}</span>
-                  <span className="seed-text">{word}</span>
+            <div className="input-group">
+              <label>Секретная фраза</label>
+              <div className="password-wrapper">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  placeholder="Минимум 8 символов"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="toggle-pass"
+                  onClick={() => setShowPass(!showPass)}
+                  tabIndex={-1}
+                >
+                  {showPass ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {passphrase.length > 0 && (
+                <div className={`strength-indicator strength-${strength.level}`}>
+                  <div className="strength-bar">
+                    <div className="strength-fill" />
+                  </div>
+                  <span className="strength-label">{strength.label}</span>
                 </div>
-              ))}
+              )}
             </div>
-            <div className="warning-box">
-              <span className="warning-icon">!</span>
-              <span>Никому не показывайте эту фразу. Потеряв её, вы потеряете доступ к идентичности.</span>
-            </div>
-            <label className="checkbox-label">
+            <div className="input-group">
+              <label>Повторите фразу</label>
               <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
+                type={showPass ? 'text' : 'password'}
+                value={passphraseConfirm}
+                onChange={(e) => setPassphraseConfirm(e.target.value)}
+                placeholder="Введите фразу ещё раз"
               />
-              Я записал(а) сид-фразу в безопасное место
-            </label>
+              {passphraseConfirm && !passMatch && (
+                <span className="inline-error">Фразы не совпадают</span>
+              )}
+            </div>
             <button
               className="btn btn-primary"
-              disabled={!confirmed}
-              onClick={handleConfirmSeed}
+              disabled={!passValid || !passMatch || !passphraseConfirm}
+              onClick={() => setStep(2)}
             >
               Продолжить
             </button>
@@ -146,8 +175,12 @@ export default function CreateIdentity({ onRegister }) {
               </div>
               <div className="preview-row">
                 <span className="preview-label">Шифрование</span>
-                <span className="preview-value">End-to-end AES-256</span>
+                <span className="preview-value">AES-256-GCM + PBKDF2</span>
               </div>
+            </div>
+            <div className="warning-box">
+              <span className="warning-icon">!</span>
+              <span>Ваша идентичность будет сохранена в файл <strong>identity.mp2p</strong> — храните его как пароль.</span>
             </div>
             <button
               className="btn btn-primary"
@@ -155,27 +188,6 @@ export default function CreateIdentity({ onRegister }) {
               onClick={handleFinish}
             >
               {creating ? 'Генерация ключей...' : 'Создать идентичность'}
-            </button>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="step-content">
-            <h2>Идентичность создана</h2>
-            <p className="step-desc">
-              Ваш P2P-узел готов к работе.
-            </p>
-            <div className="identity-card">
-              <div className="id-avatar">{displayName[0]?.toUpperCase()}</div>
-              <div className="id-name">{displayName}</div>
-              <div className="id-key">{keyData?.shortId || '...'}</div>
-              <div className="id-status">
-                <span className="status-dot online" />
-                Узел активен
-              </div>
-            </div>
-            <button className="btn btn-primary" onClick={() => navigate('/chat')}>
-              Перейти к мессенджеру
             </button>
           </div>
         )}
