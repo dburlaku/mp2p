@@ -1,48 +1,3 @@
-const WORD_LIST = [
-  'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-  'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-  'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual',
-  'adapt', 'add', 'addict', 'address', 'adjust', 'admit', 'adult', 'advance',
-  'advice', 'aerobic', 'affair', 'afford', 'afraid', 'again', 'age', 'agent',
-  'agree', 'ahead', 'aim', 'air', 'airport', 'aisle', 'alarm', 'album',
-  'alcohol', 'alert', 'alien', 'all', 'alley', 'allow', 'almost', 'alone',
-  'alpha', 'already', 'also', 'alter', 'always', 'amateur', 'amazing', 'among',
-  'amount', 'amused', 'analyst', 'anchor', 'ancient', 'anger', 'angle', 'angry',
-  'animal', 'ankle', 'announce', 'annual', 'another', 'answer', 'antenna', 'antique',
-  'anxiety', 'any', 'apart', 'apology', 'appear', 'apple', 'approve', 'april',
-  'arch', 'arctic', 'area', 'arena', 'argue', 'arm', 'armed', 'armor',
-  'army', 'around', 'arrange', 'arrest', 'arrive', 'arrow', 'art', 'artefact',
-  'artist', 'artwork', 'ask', 'aspect', 'assault', 'asset', 'assist', 'assume',
-  'asthma', 'athlete', 'atom', 'attack', 'attend', 'attitude', 'attract', 'auction',
-  'audit', 'august', 'aunt', 'author', 'auto', 'autumn', 'average', 'avocado',
-  'avoid', 'awake', 'aware', 'awesome', 'awful', 'awkward', 'axis', 'baby',
-  'bachelor', 'bacon', 'badge', 'bag', 'balance', 'balcony', 'ball', 'bamboo',
-  'banana', 'banner', 'bar', 'barely', 'bargain', 'barrel', 'base', 'basic',
-  'basket', 'battle', 'beach', 'bean', 'beauty', 'because', 'become', 'beef',
-  'before', 'begin', 'behave', 'behind', 'believe', 'below', 'belt', 'bench',
-  'benefit', 'best', 'betray', 'better', 'between', 'beyond', 'bicycle', 'bid',
-  'bike', 'bind', 'biology', 'bird', 'birth', 'bitter', 'black', 'blade',
-  'blame', 'blanket', 'blast', 'bleak', 'bless', 'blind', 'blood', 'blossom',
-  'blow', 'blue', 'blur', 'blush', 'board', 'boat', 'body', 'boil',
-  'bomb', 'bone', 'bonus', 'book', 'boost', 'border', 'boring', 'borrow',
-  'boss', 'bottom', 'bounce', 'box', 'boy', 'bracket', 'brain', 'brand',
-  'brass', 'brave', 'bread', 'breeze', 'brick', 'bridge', 'brief', 'bright',
-  'bring', 'brisk', 'broccoli', 'broken', 'bronze', 'broom', 'brother', 'brown',
-  'brush', 'bubble', 'buddy', 'budget', 'buffalo', 'build', 'bulb', 'bulk',
-  'bullet', 'bundle', 'bunny', 'burden', 'burger', 'burst', 'bus', 'business',
-  'busy', 'butter', 'buyer', 'buzz', 'cabbage', 'cabin', 'cable', 'cactus',
-];
-
-export function generateSeedPhrase(wordCount = 12) {
-  const words = [];
-  const array = new Uint32Array(wordCount);
-  crypto.getRandomValues(array);
-  for (let i = 0; i < wordCount; i++) {
-    words.push(WORD_LIST[array[i] % WORD_LIST.length]);
-  }
-  return words.join(' ');
-}
-
 export async function generateKeyPair() {
   const keyPair = await window.crypto.subtle.generateKey(
     { name: 'ECDSA', namedCurve: 'P-256' },
@@ -64,4 +19,84 @@ export function generateNodeId() {
   const array = new Uint8Array(16);
   crypto.getRandomValues(array);
   return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function fromHex(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+async function deriveKey(passphrase, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']
+  );
+  return window.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+export async function encryptIdentity(identityData, passphrase) {
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(passphrase, salt);
+  const enc = new TextEncoder();
+  const ciphertext = await window.crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    enc.encode(JSON.stringify(identityData))
+  );
+  return JSON.stringify({
+    v: 1,
+    salt: toHex(salt),
+    iv: toHex(iv),
+    data: toHex(ciphertext),
+  });
+}
+
+export async function decryptIdentity(fileContent, passphrase) {
+  const { salt, iv, data } = JSON.parse(fileContent);
+  const key = await deriveKey(passphrase, fromHex(salt));
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: fromHex(iv) },
+    key,
+    fromHex(data)
+  );
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+
+export function downloadFile(content, filename) {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function getPassphraseStrength(passphrase) {
+  if (!passphrase || passphrase.length < 8) return { level: 'weak', label: 'Слабая' };
+  let score = 0;
+  if (passphrase.length >= 12) score++;
+  if (passphrase.length >= 20) score++;
+  if (/[A-ZА-ЯЁ]/.test(passphrase) && /[a-zа-яё]/.test(passphrase)) score++;
+  if (/\d/.test(passphrase)) score++;
+  if (/[^a-zA-Zа-яА-ЯёЁ0-9\s]/.test(passphrase)) score++;
+  if (score <= 1) return { level: 'weak', label: 'Слабая' };
+  if (score <= 3) return { level: 'medium', label: 'Средняя' };
+  return { level: 'strong', label: 'Сильная' };
 }
